@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6EAF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1121" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Note Walker Levels">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest-levels.webmanifest">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Note Walker</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -139,6 +148,44 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
   .card { max-width: none; box-shadow: none; }
 }
 @media (prefers-reduced-motion: reduce) { .hold { transition: none; } }
+
+/* Phones and tablets: a compact header so the staff and the TAP key fit on one screen, bigger touch target, no keyboard hints */
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
+body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.stage, .hold { -webkit-touch-callout: none; }
+.touch-hint { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .kb-hint, .hint { display: none; }
+  .touch-hint { display: inline; }
+}
+@media (max-width: 640px) {
+  .wrap { gap: 12px; padding-block: 12px 32px; }
+  .top { gap: 10px; }
+  .brand h1 { font-size: 1.75rem; }
+  .brand p { display: none; }
+  .hud { width: 100%; flex-wrap: nowrap; gap: 6px; }
+  .stat { flex: 1 1 0; min-width: 0; padding: 4px 8px; }
+  .stat b { font-size: .6rem; letter-spacing: .06em; }
+  .stat output { font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hold { min-height: 128px; }
+  .hold strong { font-size: 2.4rem; }
+  .side { grid-template-columns: minmax(0, 1fr); }
+  .toggles { grid-template-columns: 1fr 1fr; column-gap: 12px; }
+  .toggles label { font-size: .85rem; }
+}
+/* Phones turned sideways: very little height, so tighten everything around the staff */
+@media (max-height: 500px) and (orientation: landscape) {
+  .wrap { gap: 8px; padding-block: 6px 24px; }
+  .top { align-items: center; }
+  .brand h1 { font-size: 1.4rem; }
+  .brand p { display: none; }
+  .stat { padding: 2px 8px; }
+  .stat output { font-size: 1rem; }
+  .hold { min-height: 76px; }
+  .hold strong { font-size: 1.8rem; }
+  .controls { grid-template-columns: minmax(0, 1fr) auto; }
+  .side { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+}
 </style>
 
 </head>
@@ -166,7 +213,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
   <div class="controls">
     <button class="hold" id="hold" type="button" aria-label="Tap on the start of each note">
       <strong>TAP</strong>
-      <small>Tap on each note &middot; or use the <kbd>Space</kbd> bar</small>
+      <small><span class="kb-hint">Tap on each note &middot; or use the <kbd>Space</kbd> bar</span><span class="touch-hint">Tap here on each note</span></small>
     </button>
     <div class="side">
       <button class="btn" id="pauseBtn" type="button" disabled>Pause</button>
@@ -198,6 +245,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
   const canvas = $('game'), ctx = canvas.getContext('2d');
   const stageEl = $('stage'), overlay = $('overlay'), holdBtn = $('hold'), pauseBtn = $('pauseBtn');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const touchOnly = matchMedia('(hover: none) and (pointer: coarse)');   // phones and tablets: no keyboard tips
 
   // ---------- Rhythm building blocks (each cell fills one or more beats) ----------
   // event = [kind, beats, isRest]; kind: w h q e s
@@ -428,6 +476,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
 
   // ---------- Flow ----------
   function startGame() {
+    if (innerHeight < 760) stageEl.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
     ensureAudio();
     resetRun();
     t0 = nowS() + 0.8; nextClick = 0; state = 'playing';
@@ -639,11 +688,12 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
     W = canvas.getBoundingClientRect().width || stageEl.clientWidth;
     const lvl = LEVELS[levelIdx];
     const look = ('ssss' in lvl.cells) ? 3.5 : 4.5;   // fewer beats on screen when sixteenths need room
-    s = Math.max(10, Math.min(14, W / 68));
+    const narrow = W < 600;
+    s = Math.max(narrow ? 11 : 10, Math.min(14, W / 68));
     playX = s * 9.5;
     ppb = 4 * Math.round(Math.max(85, (W - playX - s * 2) / look) / 4);   // whole pixels per sixteenth, so notes never sit between pixels
-    y0 = Math.round(s * 7.2);
-    H = Math.round(s * 17);
+    y0 = Math.round(s * (narrow ? 9.6 : 7.2));          // on phones the stage banner gets its own band above the walker
+    H = Math.round(s * (narrow ? 19.4 : 17));
     canvas.style.height = H + 'px';
     dpr = Math.min(3, Math.max(2, devicePixelRatio || 1));   // at least 2x so it stays crisp when an embed scales it
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
@@ -872,7 +922,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
   focusTip.addEventListener('click', () => holdBtn.focus({ preventScroll: true }));
   function frame(ts) {
     frameT = (ts || performance.now()) / 1000;
-    const focused = document.hasFocus();     // false when the game sits in an embed the student hasn't clicked yet
+    const focused = touchOnly.matches || document.hasFocus();     // false when the game sits in an embed the student hasn't clicked yet
     if (focusTip.hidden !== focused) focusTip.hidden = focused;
     if (state === 'playing') { const t = songTime(); update(t); scheduleClicks(t); }
     draw(); updateHud();
