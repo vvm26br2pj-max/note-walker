@@ -196,6 +196,8 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .stat { flex: 1 1 0; min-width: 0; padding: 4px 8px; }
   .stat b { font-size: .6rem; letter-spacing: .06em; }
   .stat output { font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-stage { display: none; }            /* the banner and route list already show the stage; this gives the hearts room */
+  .stat:has(.lives) output { overflow: visible; text-overflow: clip; }
   .hold { min-height: 128px; }
   .hold strong { font-size: 2.4rem; }
   .side { grid-template-columns: minmax(0, 1fr); }
@@ -229,7 +231,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
       <div class="stat"><b>Lives</b><output id="hudLives" class="lives"></output></div>
       <div class="stat"><b>Score</b><output id="hudScore">0</output></div>
       <div class="stat"><b>Combo</b><output id="hudCombo">0</output></div>
-      <div class="stat"><b>Stage</b><output id="hudStage">1</output></div>
+      <div class="stat stat-stage"><b>Stage</b><output id="hudStage">1</output></div>
     </div>
   </header>
 
