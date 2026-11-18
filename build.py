@@ -33,7 +33,7 @@ HEAD = '''<!doctype html>
 <link rel="manifest" href="manifest.webmanifest">
 <style>:root{{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}*,*::before,*::after{{box-sizing:inherit}}body{{margin:0}}img{{max-width:100%}}[hidden]{{display:none!important}}
 .menu-link{{display:inline-block;margin-bottom:6px;font-weight:700;font-size:.85rem;color:var(--muted);text-decoration:none;border:1px solid var(--rule);border-radius:999px;padding:3px 12px;background:var(--panel)}}
-.menu-link:hover{{color:var(--ink);border-color:var(--muted)}}</style>
+@media (hover:hover){{.menu-link:hover{{color:var(--ink);border-color:var(--muted)}}}}</style>
 '''
 MENU_LINK = '<a class="menu-link" href="./">&lsaquo; All games</a>\n      '
 

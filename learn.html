@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 .menu-link{display:inline-block;margin-bottom:6px;font-weight:700;font-size:.85rem;color:var(--muted);text-decoration:none;border:1px solid var(--rule);border-radius:999px;padding:3px 12px;background:var(--panel)}
-.menu-link:hover{color:var(--ink);border-color:var(--muted)}</style>
+@media (hover:hover){.menu-link:hover{color:var(--ink);border-color:var(--muted)}}</style>
 <title>Note Walker</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,7 +97,7 @@ button { font: inherit; color: inherit; }
 .res dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .btn { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 9px 16px; font-weight: 700; cursor: pointer; }
-.btn:hover:not(:disabled) { border-color: var(--muted); }
+@media (hover: hover) { .btn:hover:not(:disabled) { border-color: var(--muted); } }
 .btn:disabled { opacity: .45; cursor: default; }
 .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
@@ -123,7 +123,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
 .lower h2 { font-family: var(--display); font-weight: 400; font-size: 1.35rem; margin: 0 0 10px; }
 #levels { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 10px; }
 .lvl { width: 100%; height: 100%; text-align: left; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; align-items: start; }
-.lvl:hover { border-color: var(--muted); }
+@media (hover: hover) { .lvl:hover { border-color: var(--muted); } }
 .lvl[aria-current="true"] { border-color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--accent-deep); }
 .lvl .n { font-family: var(--display); font-size: 1.8rem; line-height: 1; color: var(--accent-deep); grid-row: span 3; min-width: 1.1em; }
 .lvl .nm { font-weight: 700; }
@@ -197,7 +197,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     <div class="brand">
       <a class="menu-link" href="./">&lsaquo; All games</a>
       <h1>Note <span>Walker</span></h1>
-      <p>Tap right on the start of every note, short and crisp like staccato. Stay silent through the rests.</p>
+      <p>Tap once, right on the start of every note, short and crisp like staccato. Stay silent through the rests.</p>
     </div>
     <div class="hud" aria-live="off">
       <div class="stat"><b>Level</b><output id="hudLevel">1</output></div>
@@ -236,7 +236,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     </section>
     <section class="key">
       <h2>Note values in 4/4</h2>
-      <p>Tap once when a note reaches the ring. The gap before the next tap shows how long the note lasts. Don't tap during rests.</p>
+      <p>Tap once when a note reaches the ring. The gap before the next tap shows how long the note lasts. Don't tap during rests, and don't add extra taps: they lower your accuracy.</p>
       <div class="vals" id="vals"></div>
     </section>
   </div>
@@ -286,7 +286,29 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     set(k, v) { try { localStorage.setItem('noteWalker.' + k, JSON.stringify(v)); } catch (e) {} },
   };
   const settings = Object.assign({ metro: true, tone: true, guides: true, counts: true }, store.get('settings', {}));
-  const best = store.get('best', []);
+  // Saved stars carry a short checksum, so stars typed into the browser's storage don't count.
+  const SEAL = ['nw', 'learn', 'nine', '80'].join('-');
+  function sealOf(text) {            // FNV-1a hash, written as 6 characters
+    let h = 0x811c9dc5;
+    for (const ch of text + SEAL) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
+    const abc = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+    let out = '';
+    for (let i = 0; i < 6; i++) { out += abc[h % abc.length]; h = Math.floor(h / abc.length); }
+    return out;
+  }
+  const starsSeal = b => sealOf('stars:' + b.join(','));
+  const cleanStars = b => Array.isArray(b) ? b.slice(0, 9).map(n => Math.max(0, Math.min(3, n | 0))) : [];
+  function loadBest() {
+    const saved = store.get('best2', null);
+    if (saved) return saved && saved.h === starsSeal(cleanStars(saved.b)) ? cleanStars(saved.b) : [];
+    // stars saved before the checksum existed are carried over once
+    const old = cleanStars(store.get('best', []));
+    try { localStorage.removeItem('noteWalker.best'); } catch (e) {}
+    saveBest(old);
+    return old;
+  }
+  function saveBest(b) { store.set('best2', { b, h: starsSeal(b) }); }
+  const best = loadBest();
 
   // ---------- Theme colors for the canvas ----------
   const colors = {};
@@ -362,7 +384,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   let levelIdx = Math.min(store.get('level', 0), LEVELS.length - 1);
   let state = 'idle', song = null, spb = .75, t0 = 0, pausedSong = 0;
   let isDown = false, taps = [];
-  let score = 0, combo = 0, maxCombo = 0, earned = 0, judgedMax = 0, tally;
+  let score = 0, combo = 0, maxCombo = 0, earned = 0, judgedMax = 0, penalty = 0, tally;
   let popup = null, hopT = -9, sadT = -9, particles = [], lastPart = 0, nextClick = 0;
   const nowS = () => performance.now() / 1000;
   const songTime = () => nowS() - t0;
@@ -371,57 +393,85 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   function resetRun() {
     for (const ev of song.events) { ev.state = 'pending'; ev.onGrade = null; }
     taps = [];
-    score = combo = maxCombo = earned = judgedMax = 0;
-    tally = { perfect: 0, good: 0, miss: 0, kept: 0, broken: 0, held: 0 };
+    score = combo = maxCombo = earned = judgedMax = penalty = 0; seal();
+    tally = { perfect: 0, good: 0, miss: 0, kept: 0, broken: 0, extra: 0 };
     popup = null; particles = [];
   }
   function newSong() { song = buildSong(LEVELS[levelIdx]); spb = song.spb; resetRun(); }
 
-  function addPoints(base) { earned += base; score += base * mult(); }
+  // Score, points earned and points possible are each kept twice: the number and a scrambled copy.
+  // Changing one by hand in the browser's debugger won't match its copy, so the game puts the real value back.
+  const KEYS = [0, 0, 0, 0].map(() => (Math.random() * 0x3fffffff) | 0);
+  let seals = [];
+  const tracked = () => [score, earned, judgedMax, penalty];
+  const seal = () => { seals = tracked().map((v, i) => v ^ KEYS[i]); };
+  function checkSeal() {
+    if (tracked().every((v, i) => (v ^ KEYS[i]) === seals[i])) return;
+    [score, earned, judgedMax, penalty] = seals.map((v, i) => v ^ KEYS[i]);
+    show('Nice try!', 'miss');
+  }
+  // An extra tap adds to the points possible, so tapping everything can't earn stars.
+  const EXTRA = 50;
+  const accuracy = () => earned / (song.maxBase + penalty);
+  function judge(base, possible) { checkSeal(); earned += base; score += base * mult(); judgedMax += possible; seal(); }
   function bumpCombo() { combo++; if (combo > maxCombo) maxCombo = combo; }
   function show(text, kind) { popup = { text, kind, t: nowS() }; }
 
   // ---------- Judging ----------
+  // Each note takes exactly one tap. A tap within the note's window is Perfect or Early/Late; within an eighth
+  // note it still counts as Too early/late; any further from every waiting note is an extra tap.
+  function oops(text) { combo = 0; show(text, 'miss'); sadT = nowS(); }
   function judgePress(t) {
     taps.push(t / spb);
-    let bestEv = null, bd = Infinity;
+    if (t / spb < COUNT_IN - 0.5) return;             // tapping along with the count-in is fine
+    const tol = 0.5 * spb;                             // an eighth note
+    let near = null, nd = Infinity;
     for (const ev of song.events) {
-      if (ev.start > t + 0.5) break;
+      if (ev.start > t + 1) break;
       if (ev.rest || ev.state !== 'pending') continue;
       const d = Math.abs(t - ev.start);
-      if (d <= ev.gw && d < bd) { bestEv = ev; bd = d; }
+      if (d < nd) { near = ev; nd = d; }
     }
-    if (bestEv) {
-      const err = t - bestEv.start;
-      const perfect = Math.abs(err) <= bestEv.pw;
-      bestEv.onGrade = perfect ? 'perfect' : 'good';
-      bestEv.state = 'done';
-      judgedMax += 100; addPoints(perfect ? 100 : 60); bumpCombo();
+    if (near && nd <= near.gw) {
+      const err = t - near.start;
+      const perfect = Math.abs(err) <= near.pw;
+      near.onGrade = perfect ? 'perfect' : 'good';
+      near.state = 'done';
+      judge(perfect ? 100 : 60, 100); bumpCombo();
       tally[perfect ? 'perfect' : 'good']++;
       show(perfect ? 'Perfect!' : (err < 0 ? 'Early' : 'Late'), perfect ? 'perfect' : 'good');
       if (perfect) hopT = nowS();
       return;
     }
-    for (const ev of song.events) {
-      if (ev.start > t) break;
-      if (ev.rest && ev.state === 'pending' && t >= ev.start - 0.02 && t < ev.end) { breakRest(ev); return; }   // any tap inside a rest, right from its first instant
+    if (near && nd <= tol) {                           // off, but within an eighth note: it counts, barely
+      near.onGrade = 'off'; near.state = 'done';
+      judge(20, 100); bumpCombo(); tally.good++;
+      show(t < near.start ? 'Too early' : 'Too late', 'good');
+      return;
     }
+    for (const ev of song.events) {                    // any tap inside a rest, right from its first instant
+      if (ev.start > t) break;
+      if (ev.rest && ev.state === 'pending' && t >= ev.start - 0.02 && t < ev.end) { breakRest(ev); return; }
+    }
+    // more than an eighth note from any note waiting for a tap: a second tap or a stray tap
+    checkSeal(); penalty += EXTRA; judgedMax += EXTRA; seal();
+    tally.extra++; oops('Extra tap!');
   }
   function breakRest(ev) {
-    ev.state = 'broken'; judgedMax += 75; combo = 0; tally.broken++;
-    show('Shh, rest!', 'miss'); sadT = nowS();
+    ev.state = 'broken'; judge(0, 75); tally.broken++;
+    oops('Shh, rest!');
   }
   function update(t) {
     for (const ev of song.events) {
       if (ev.start > t + 1) break;
       if (ev.state !== 'pending') continue;
       if (!ev.rest) {
-        if (t > ev.start + ev.gw) {
-          ev.state = 'missed'; judgedMax += 100; combo = 0; tally.miss++;
-          show('Miss', 'miss'); sadT = nowS();
+        if (t > ev.start + 0.5 * spb) {               // not tapped within an eighth note
+          ev.state = 'missed'; judge(0, 100); tally.miss++;
+          oops('Miss');
         }
       } else if (t > ev.end) {
-        ev.state = 'kept'; judgedMax += 75; addPoints(75); bumpCombo(); tally.kept++;
+        ev.state = 'kept'; judge(75, 75); bumpCombo(); tally.kept++;
       }
     }
     if (isDown && !reduceMotion && nowS() - lastPart > 0.14) {
@@ -511,8 +561,9 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   function finish() {
     if (isDown) inputUp();
     state = 'results';
-    const acc = earned / song.maxBase, stars = starsFor(acc);
-    if ((best[levelIdx] || 0) < stars) { best[levelIdx] = stars; store.set('best', best); }
+    checkSeal();
+    const stars = starsFor(accuracy());
+    if ((best[levelIdx] || 0) < stars) { best[levelIdx] = stars; for (let i = 0; i < LEVELS.length; i++) best[i] = best[i] || 0; saveBest(best); }
     renderOverlay(); renderLevels(); syncButtons();
   }
   const starsFor = acc => acc >= 0.9 ? 3 : acc >= 0.75 ? 2 : acc >= 0.55 ? 1 : 0;
@@ -585,7 +636,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   function renderOverlay() {
     const lvl = LEVELS[levelIdx];
     const head = `<p class="eyebrow">Level ${levelIdx + 1} of ${LEVELS.length} · ${lvl.tier}</p>`;
-    if (state === 'playing') { overlay.hidden = true; overlay.innerHTML = ''; return; }
+    if (state === 'playing') { overlay.hidden = true; overlay.innerHTML = ''; pageGuard.takeRecords(); return; }
     overlay.hidden = false;
     if (state === 'idle') {
       overlay.innerHTML = `<div class="card">${head}<h2>${lvl.name}</h2>
@@ -596,7 +647,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         <p>The music backs up two beats when you continue.</p>
         <div class="row"><button class="btn primary" data-act="resume" type="button">Resume</button><span class="hint"><kbd>Space</kbd> or <kbd>Esc</kbd></span></div></div>`;
     } else if (state === 'results') {
-      const acc = earned / song.maxBase, stars = starsFor(acc);
+      const acc = accuracy(), stars = starsFor(acc);
       const last = levelIdx === LEVELS.length - 1;
       const title = stars === 3 ? 'Right in the pocket!' : stars >= 1 ? 'Level clear' : 'Keep practicing';
       overlay.innerHTML = `<div class="card">${head}<h2>${title}</h2>
@@ -607,6 +658,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
           <div><dt>Perfect taps</dt><dd>${tally.perfect}</dd></div>
           <div><dt>Good taps</dt><dd>${tally.good}</dd></div>
           <div><dt>Missed</dt><dd>${tally.miss}</dd></div>
+          <div><dt>Extra taps</dt><dd>${tally.extra}</dd></div>
           <div><dt>Rests kept</dt><dd>${tally.kept}/${tally.kept + tally.broken}</dd></div>
           <div><dt>Best combo</dt><dd>${maxCombo}</dd></div>
         </dl>
@@ -616,6 +668,7 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
           <button class="btn" data-act="new" type="button">New rhythm</button>
         </div></div>`;
     }
+    pageGuard.takeRecords();
   }
   function renderLevels() {
     const list = $('levels'); list.innerHTML = '';
@@ -634,12 +687,18 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     });
   }
   const hud = { level: $('hudLevel'), score: $('hudScore'), combo: $('hudCombo'), acc: $('hudAcc') };
+  // Text changed by hand (Inspect Element) in the score boxes or the results card is redrawn from the real values.
+  const pageGuard = new MutationObserver(() => {
+    for (const el of Object.values(hud)) el.textContent = '';
+    renderOverlay(); updateHud();
+  });
   const setText = (el, v) => { if (el.textContent !== v) el.textContent = v; };
   function updateHud() {
     setText(hud.level, String(levelIdx + 1));
     setText(hud.score, score.toLocaleString());
     setText(hud.combo, combo ? `${combo} ×${mult()}` : '0');
     setText(hud.acc, judgedMax ? Math.round(earned / judgedMax * 100) + '%' : '—');
+    pageGuard.takeRecords();        // our own updates aren't tampering
   }
 
   // ---------- Notation drawing (S = staff space in px) ----------
@@ -986,6 +1045,8 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   new MutationObserver(refreshTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   new ResizeObserver(() => layout()).observe(stageEl);
   newSong(); layout(); renderOverlay(); renderLevels(); syncButtons();
+  for (const el of [overlay, document.querySelector('.hud')])
+    pageGuard.observe(el, { childList: true, subtree: true, characterData: true });
   requestAnimationFrame(frame);
 })();
 </script>

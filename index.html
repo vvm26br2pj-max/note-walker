@@ -58,7 +58,7 @@ h1 span { color: var(--accent-deep); }
   background: var(--panel); border: 1px solid var(--rule);
   box-shadow: 0 6px 0 var(--rule); transition: transform .08s, box-shadow .08s;
 }
-.choice:hover { border-color: var(--accent-deep); }
+@media (hover: hover) { .choice:hover { border-color: var(--accent-deep); } }
 .choice:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--rule); }
 .choice.main { background: var(--accent); color: var(--accent-ink); border-color: var(--accent-deep); box-shadow: 0 6px 0 var(--accent-deep); }
 .choice.main:active { box-shadow: 0 2px 0 var(--accent-deep); }
@@ -69,6 +69,8 @@ h1 span { color: var(--accent-deep); }
 .keys { margin: 0; text-align: center; color: var(--muted); font-size: .85rem; }
 kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; font-size: .8rem; }
 @media (hover: none) and (pointer: coarse) { .keys { display: none; } }
+.about { margin: 0; text-align: center; font-size: .85rem; }
+.about a { color: var(--muted); text-underline-offset: 3px; padding: 8px; }
 @media (prefers-reduced-motion: reduce) { .choice { transition: none; } }
 </style>
 </head>
@@ -92,6 +94,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
     </a>
   </nav>
   <p class="keys">Press <kbd>1</kbd> or <kbd>2</kbd> to choose</p>
+  <p class="about"><a href="support.html">About &amp; support</a></p>
 </main>
 
 <script>

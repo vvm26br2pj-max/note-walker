@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 .menu-link{display:inline-block;margin-bottom:6px;font-weight:700;font-size:.85rem;color:var(--muted);text-decoration:none;border:1px solid var(--rule);border-radius:999px;padding:3px 12px;background:var(--panel)}
-.menu-link:hover{color:var(--ink);border-color:var(--muted)}</style>
+@media (hover:hover){.menu-link:hover{color:var(--ink);border-color:var(--muted)}}</style>
 <title>Note Walker Marathon</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,7 +97,7 @@ button { font: inherit; color: inherit; }
 .res dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .btn { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 9px 16px; font-weight: 700; cursor: pointer; }
-.btn:hover:not(:disabled) { border-color: var(--muted); }
+@media (hover: hover) { .btn:hover:not(:disabled) { border-color: var(--muted); } }
 .btn:disabled { opacity: .45; cursor: default; }
 .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
@@ -123,7 +123,7 @@ kbd { font-family: var(--body); font-weight: 700; border: 1px solid currentColor
 .lower h2 { font-family: var(--display); font-weight: 400; font-size: 1.35rem; margin: 0 0 10px; }
 #levels { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 10px; }
 .lvl { width: 100%; height: 100%; text-align: left; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; align-items: start; }
-.lvl:hover { border-color: var(--muted); }
+@media (hover: hover) { .lvl:hover { border-color: var(--muted); } }
 .lvl[aria-current="true"] { border-color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--accent-deep); }
 .lvl .n { font-family: var(--display); font-size: 1.8rem; line-height: 1; color: var(--accent-deep); grid-row: span 3; min-width: 1.1em; }
 .lvl .nm { font-weight: 700; }
@@ -220,6 +220,10 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .hold strong { font-size: 1.8rem; }
   .controls { grid-template-columns: minmax(0, 1fr) auto; }
   .side { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+  /* The high score name box makes the card taller than the screen, and the keyboard takes half of what's left.
+     Put that card below the staff instead of on top of it, so nothing overlaps while typing. */
+  .stage:has(.nick) .overlay { grid-area: 2 / 1; background: none; padding: 0 12px 12px; justify-items: stretch; }
+  .stage:has(.nick) .card { max-width: none; box-shadow: none; }
 }
 </style>
 
